@@ -24,7 +24,7 @@ data Transform = forall a . Transform
 	}
 ```
 
-Using this, we can type check and code generate SQL expressions, regex expressions, Auto Layout strings, etc. Anything you might of used quasi-quotation for in Haskell.
+Using this, we can type check and perform code generate for SQL expressions, regex expressions, Auto Layout strings, etc. in C. Anything you might of used quasi-quotation for in Haskell.
 
 ## Status
 
