@@ -8,7 +8,7 @@ Cpppp introduces "Quoted Initialisers" to C. Quoted initialisers are C initialis
 
 ```c
 int x = 4;
-iny y = 2;
+int y = 2;
 int z = @|c_hs|"(+) %d %d"|x, y|;
 ```
 
