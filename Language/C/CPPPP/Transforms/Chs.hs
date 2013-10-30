@@ -43,14 +43,24 @@ emit h loc (FCall fname ffi_name args) = do
     return (h, [cinit|$cexpr|])
 
 -- args: [(CType CInt,Id "x" ),(CType CInt,Id "y" )]
-mkHsExpr :: String -> String -> [(Arg a, C.Id)] -> Q Dec
+mkHsExpr :: String -> String -> [(Arg a, C.Id)] -> Q [Dec]
 mkHsExpr ffi_name fname args = do
   names <- mapM newName $ replicate (length args) "x"
-  let body = NormalB $ applyT (reverse names) (mkName fname)
-  -- TODO: This is missing the foreign export. That is important.
-  return $ FunD (mkName ffi_name) [Clause (map VarP names) body []]
+  let types = applyT $ map (mkType . fst) args
+      body = NormalB $ applyN (reverse names) (mkName fname)
+      for = ForeignD $ ExportF CCall ffi_name (mkName ffi_name) types
+      decl = FunD (mkName ffi_name) [Clause (map VarP names) body []]
+  return [for, decl]
 
-applyT :: [Name] -> Name -> Exp
-applyT [] fname = VarE fname
-applyT [x] fname = AppE (VarE fname) (VarE x)
-applyT (x:xs) fname = AppE (applyT xs fname) (VarE x)
+applyN :: [Name] -> Name -> Exp
+applyN [] fname = VarE fname
+applyN [x] fname = AppE (VarE fname) (VarE x)
+applyN (x:xs) fname = AppE (applyN xs fname) (VarE x)
+
+applyT :: [Name] -> Type
+-- applyT [] = boom
+applyT [x] = ConT x
+applyT (x:xs) = AppT (AppT ArrowT (ConT x)) (applyT xs)
+
+mkType :: Arg a -> Name
+mkType (CType CInt) = mkName "CInt"
