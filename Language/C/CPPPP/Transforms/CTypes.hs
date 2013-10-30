@@ -6,6 +6,7 @@ import Data.Loc (SrcLoc)
 import Data.Unique
 import Text.ParserCombinators.Parsec
 import Language.Haskell.TH hiding (varP)
+import Language.Haskell.TH.Quote
 
 -- A function call into Haskell from ObjC
 data FCall a = FCall String          -- ^ Haskell function name
@@ -34,7 +35,7 @@ class FormatString a where
   -- | Parse 1 argument
   argP :: Parser (Arg a)
   mkType :: Arg a -> String
-  mkMarshalling :: Arg a -> ExpQ
+  mkMarshalling :: Arg a -> Exp
   -- TODO: generate marshalling code
 
 -- C
@@ -45,7 +46,7 @@ instance FormatString CLang where
   mkType (CType CString) = "CString"
   mkType (CType CFloat) = "CFloat"
   mkType (CType CPtr) = "Ptr ()"
-  mkMarshalling (CType CInt) = [e|fromInteger|]
+  mkMarshalling (CType CInt) = VarE $ mkName $ "fromInteger"
   -- mkMarshalling (CType CString) = "CString"
   -- mkMarshalling (CType CFloat) = "CFloat"
   -- mkMarshalling (CType CPtr) = "Ptr ()"
@@ -58,7 +59,7 @@ instance FormatString ObjCLang where
   mkType (CType CString) = "Ptr NSString"
   mkType (CType CFloat) = "Ptr NSNumber"
   mkType (CType CPtr) = "Ptr NSObject"
-  mkMarshalling (CType CInt) = [e|fromInteger|]
+  mkMarshalling (CType CInt) = VarE $ mkName $ "fromInteger"
   -- mkMarshalling (CType CString) = "CString"
   -- mkMarshalling (CType CFloat) = "CFloat"
   -- mkMarshalling (CType CPtr) = "Ptr ()"

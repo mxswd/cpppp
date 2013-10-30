@@ -47,15 +47,16 @@ mkHsExpr :: FormatString a => String -> String -> [(Arg a, C.Id)] -> Q [Dec]
 mkHsExpr ffi_name fname args = do
   names <- mapM newName $ replicate (length args) "x"
   let types = applyT $ map (mkName . mkType . fst) args
-      body = NormalB $ applyN (reverse names) (mkName fname)
+      mar = map (mkMarshalling . fst) args
+      body = NormalB $ applyN (zip mar (reverse names)) (mkName fname)
       for = ForeignD $ ExportF CCall ffi_name (mkName ffi_name) types
       decl = FunD (mkName ffi_name) [Clause (map VarP names) body []]
   return [for, decl]
 
-applyN :: [Name] -> Name -> Exp
+applyN :: [(Exp, Name)] -> Name -> Exp
 applyN [] fname = VarE fname
-applyN [x] fname = AppE (VarE fname) (VarE x)
-applyN (x:xs) fname = AppE (applyN xs fname) (VarE x)
+applyN [(m, x)] fname = AppE (VarE fname) (AppE m (VarE x))
+applyN ((m, x):xs) fname = AppE (applyN xs fname) (AppE m (VarE x))
 
 applyT :: [Name] -> Type
 -- applyT [] = boom
