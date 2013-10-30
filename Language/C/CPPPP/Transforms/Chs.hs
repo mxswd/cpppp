@@ -43,10 +43,10 @@ emit h loc (FCall fname ffi_name args) = do
     return (h, [cinit|$cexpr|])
 
 -- args: [(CType CInt,Id "x" ),(CType CInt,Id "y" )]
-mkHsExpr :: String -> String -> [(Arg a, C.Id)] -> Q [Dec]
+mkHsExpr :: FormatString a => String -> String -> [(Arg a, C.Id)] -> Q [Dec]
 mkHsExpr ffi_name fname args = do
   names <- mapM newName $ replicate (length args) "x"
-  let types = applyT $ map (mkType . fst) args
+  let types = applyT $ map (mkName . mkType . fst) args
       body = NormalB $ applyN (reverse names) (mkName fname)
       for = ForeignD $ ExportF CCall ffi_name (mkName ffi_name) types
       decl = FunD (mkName ffi_name) [Clause (map VarP names) body []]
@@ -61,6 +61,3 @@ applyT :: [Name] -> Type
 -- applyT [] = boom
 applyT [x] = ConT x
 applyT (x:xs) = AppT (AppT ArrowT (ConT x)) (applyT xs)
-
-mkType :: Arg a -> Name
-mkType (CType CInt) = mkName "CInt"

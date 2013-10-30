@@ -1,10 +1,11 @@
-{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE EmptyDataDecls, TemplateHaskell #-}
 module Language.C.CPPPP.Transforms.CTypes where
 
 import qualified Language.C.Syntax as C
 import Data.Loc (SrcLoc)
 import Data.Unique
 import Text.ParserCombinators.Parsec
+import Language.Haskell.TH hiding (varP)
 
 -- A function call into Haskell from ObjC
 data FCall a = FCall String          -- ^ Haskell function name
@@ -32,17 +33,35 @@ data Arg a = HSLit TypeVal String  -- ^ Haskell literal (by initializer) (TODO: 
 class FormatString a where
   -- | Parse 1 argument
   argP :: Parser (Arg a)
+  mkType :: Arg a -> String
+  mkMarshalling :: Arg a -> ExpQ
   -- TODO: generate marshalling code
 
 -- C
 instance FormatString CLang where
   argP = varP (findTypeC)
      <|> (fmap (HSLit CString) word) -- TODO: use the read parser to work out type as well
+  mkType (CType CInt) = "CInt"
+  mkType (CType CString) = "CString"
+  mkType (CType CFloat) = "CFloat"
+  mkType (CType CPtr) = "Ptr ()"
+  mkMarshalling (CType CInt) = [e|fromInteger|]
+  -- mkMarshalling (CType CString) = "CString"
+  -- mkMarshalling (CType CFloat) = "CFloat"
+  -- mkMarshalling (CType CPtr) = "Ptr ()"
 
 -- Obj C
 instance FormatString ObjCLang where
   argP = varP (\x -> findTypeC x <|> findTypeObjC x)
      <|> (fmap (HSLit CString) word)
+  mkType (CType CInt) = "Ptr NSNumber"
+  mkType (CType CString) = "Ptr NSString"
+  mkType (CType CFloat) = "Ptr NSNumber"
+  mkType (CType CPtr) = "Ptr NSObject"
+  mkMarshalling (CType CInt) = [e|fromInteger|]
+  -- mkMarshalling (CType CString) = "CString"
+  -- mkMarshalling (CType CFloat) = "CFloat"
+  -- mkMarshalling (CType CPtr) = "Ptr ()"
 
 -- | Function call from the quoter expression
 fcall :: (FormatString a) => String -> [C.Id] -> IO (FCall a)
